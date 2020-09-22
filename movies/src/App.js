@@ -1,7 +1,8 @@
 import React, {Component} from 'react';
 import logo from './logo.svg';
-import {Header,MovieList,MovieDetails, Loading} from './components/index'
-import dataMovies from './data'
+import {Header,MovieList,MovieDetails, Loading, SearchBar} from './components/index'
+import * as axios from 'axios'
+import apiMovie, {apiMovieMap} from './conf/api.movie'
 
 
 
@@ -16,14 +17,6 @@ class App extends Component {
       loaded:false
     }
 
-    setTimeout(()=>{
-      this.setState({
-        movies:dataMovies,
-        loaded:true
-      })
-
-    },2000)
-
   }
 
   updateSelectedMovie=(index)=>{
@@ -33,11 +26,29 @@ class App extends Component {
     })
 
   }
+
+  componentDidMount(){
+    apiMovie.get('/discover/movie')
+            .then( response => response.data.results)
+            .then(moviesApi =>{
+                const movies = moviesApi.map(apiMovieMap)
+                this.updateMovies(movies);
+            })
+            .catch(err => console.log(err));
+  }
+
+  updateMovies=(movies)=>{
+    this.setState({
+      movies,
+      loaded:true
+    })
+  }
   render(){
 
   return (
     <div className="App d-flex flex-column">
       <Header/>
+      <SearchBar updateMovies ={this.updateMovies}/>
       {this.state.loaded ? (<div className="d-flex flex-row  flex-fill pt-4 p-2">        
         <MovieList movies={this.state.movies} updateSelectedMovie={this.updateSelectedMovie}/>
         <MovieDetails movie={this.state.movies[this.state.selectedMovie]}/>        
