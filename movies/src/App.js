@@ -1,12 +1,11 @@
 import React, {Component} from 'react';
-import logo from './logo.svg';
-import {Header} from './components/index'
-import * as axios from 'axios'
-import apiMovie, {apiMovieMap} from './conf/api.movie'
+import {Header} from './components/index';
+import apiMovie, {apiMovieMap} from './conf/api.movie';
+import apiFirebase from './conf/api.firebase';
 import Films from './features/films';
 import Favoris from './features/favoris';
 import {BrowserRouter as Router, Route, Switch, Redirect} from 'react-router-dom';
-import { FavoriList } from './features/favoris/components';
+
 
 
 
@@ -19,7 +18,7 @@ class App extends Component {
       movies:null,
       selectedMovie:0,
       loaded:false,
-      favoris:[]
+      favoris:null
     }
 
   }
@@ -40,13 +39,27 @@ class App extends Component {
                 this.updateMovies(movies);
             })
             .catch(err => console.log(err));
+
+            apiFirebase.get('favoris.json')
+                  .then(response => {
+                      let favoris = response.data ? response.data : [];    
+                      this.updateFavori(favoris);              
+                  
+                  })
   }
 
   updateMovies=(movies)=>{
     this.setState({
       movies,
-      loaded:true
+      loaded: this.state.favoris ? true : false
     })
+  }
+
+  updateFavori = (favoris) => {
+      this.setState({
+        favoris,
+        loaded : this.state.movies ? true : false
+      })
   }
 
   addFavori =(title) => {
@@ -57,7 +70,9 @@ class App extends Component {
 
     this.setState({
       favoris
-    })
+    },()=>{
+      this.saveFavori();//this function is call only when setState ends
+    })   
   }
 
   removeFavori=(title)=>{
@@ -69,7 +84,12 @@ class App extends Component {
      this.setState({
        favoris
      })
+    //save favori in  firebase
+    this.saveFavori();
+  }
 
+  saveFavori =()=>{
+    apiFirebase.put('favoris.json',this.state.favoris);
   }
 
   render(){
@@ -90,12 +110,14 @@ class App extends Component {
                             selectedMovie={this.state.selectedMovie}
                             addFavori={this.addFavori}
                             removeFavori={this.removeFavori}
-                            favoris={this.state.favoris.map(f=>f.title)}
+                            favoris={this.state.favoris}
                     /> )  
                 }}/>
                 <Route path="/favoris" render={(props) =>{
                     return(
                             <Favoris
+                                {...props}
+                                loaded={this.state.loaded}
                                 favoris={this.state.favoris}
                                 removeFavori={this.removeFavori}                            
                             />
